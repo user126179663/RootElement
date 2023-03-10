@@ -205,3 +205,103 @@ string = AttributesLocker.val2str(val[, type][, defaultValue]);
 　変換に失敗した時の既定値を指定します。
 ## プロパティ
 ## メソッド
+### getFlags
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性の現在の制御値を戻り値にして返します。
+#### 構文
+```javasscript
+number = attributesLocker.getFlags(name);
+```
+#### 引数
+##### name
+　制御値を取得したい属性の名前を文字列で指定します。
+#### 戻り値
+　制御値を示す数値です。
+### getLockedAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性の値を取得して戻り値にします。属性の制御値が読み取り不可相当である場合は、第二引数 *[defaultValue](#defaultValue)* に指定した値を戻り値にします。
+#### 構文
+```javasscript
+value = attributesLocker.getLockedAttribute(name[, defaultValue][, type = 'string']);
+```
+#### 引数
+##### name
+　値を取得したい属性の名前を文字列で指定します。
+##### defaultValue
+　属性が読み取り不可に設定されている場合に戻り値にする値を指定します。
+##### type
+　取得した値の型を指定します。型変換に成功した場合、値は指定した型で戻り値になります。
+#### 戻り値
+　指定した属性の値です。
+### setLockedAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性に第二引数 *[value](#value)* に指定した値を書き込みます。属性の制御値が書き込み不可相当に設定されている場合は書き込みは行なわれません。
+#### 構文
+```javasscript
+boolean = attributesLocker.setLockedAttribute(name[, value][, typeOrAsBooleanAttribute]);
+```
+#### 引数
+##### name
+　値を書き込みたい属性の名前を文字列で指定します。
+##### value
+　指定した属性に書き込む値を指定します。
+##### typeOrAsBooleanAttribute
+　*[value](#value)* に指定した値の型を文字列で明示します。*[value](#value)* は明示された型に対応する方法で属性値として書き込み可能な文字列形式に変換されます。未指定の場合は自動で値の型を判定します。
+
+　型の名前ではなく[論理値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E8%AB%96%E7%90%86%E5%9E%8B_boolean)を設定した場合、書き込み先の属性を論理属性として認識します。``true`` の場合は空の値で指定の属性を要素に追加し、``false`` の場合は指定の属性を要素から削除します。
+#### 戻り値
+　書き込みの正否を示す[論理値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E8%AB%96%E7%90%86%E5%9E%8B_boolean)です。属性の書き込みを行なえなかった場合は ``false`` を返し、そうでない場合は ``true`` を返します。
+### isFlaggedAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性の制御値と、第二引数 *[flags](#flags)* に指定した制御値との[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)を評価し、その結果を戻り値にします。
+#### 構文
+```javasscript
+result = attributesLocker.isFlaggedAttribute(name, flags);
+```
+#### 引数
+##### name
+　属性の名前を文字列で指定します。
+##### flags
+　*[name](#name)* に指定した名前を持つ属性に設定された制御値と[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)を行なう値を指定します。
+#### 戻り値
+　[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)で評価した結果を示す数値です。[name](#name) に指定した属性が存在しないか、制御値を設定されていない場合は ``false`` を返します。
+### isLockedAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性が読み取り、書き込みいずれも不可相当であるかを確認し、その結果を戻り値にします。
+#### 構文
+```javasscript
+boolean = attributesLocker.isLockedAttribute(name);
+```
+#### 引数
+##### name
+　属性の名前を文字列で指定します。
+#### 戻り値
+　読み取りと書き込みがどちらも不可であれば ``true``、そうでなければ ``false`` を返します。
+### isReadableAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性が読み取りが可能であるかを確認し、その結果を戻り値にします。
+#### 構文
+```javasscript
+boolean = attributesLocker.isReadableAttribute(name);
+```
+#### 引数
+##### name
+　属性の名前を文字列で指定します。
+#### 戻り値
+　読み取りが可能であれば ``true``、そうでなければ ``false`` を返します。
+### isUnlockedAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性が読み取りも書き込みも行なえるかを確認し、その結果を戻り値にします。
+#### 構文
+```javasscript
+boolean = attributesLocker.isUnlockedAttribute(name);
+```
+#### 引数
+##### name
+　属性の名前を文字列で指定します。
+#### 戻り値
+　読み取りも書き込みも可能であれば ``true``、そうでなければ ``false`` を返します。
+### isWritableAttribute
+　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性が書き込みが可能であるかを確認し、その結果を戻り値にします。
+#### 構文
+```javasscript
+boolean = attributesLocker.isWritableAttribute(name);
+```
+#### 引数
+##### name
+　属性の名前を文字列で指定します。
+#### 戻り値
+　書き込みが可能であれば ``true``、そうでなければ ``false`` を返します。
