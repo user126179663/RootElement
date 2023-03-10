@@ -5,7 +5,7 @@
 	<head>
 		<meta charset="utf-8">
 		<title>HTMLRootElement</title>
-		<script src="root-element.js"></script>
+		<script src="html-root-element.js"></script>
 	</head>
 	<body>
 		
@@ -43,6 +43,7 @@
 　カスタム要素 ***[\<root-element\>](#root-element-ルート要素)*** を定義する [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) です。 ***[HTMLMutationEmitter](#HTMLMutationEmitter)*** を継承しています。
 
 ## 静的プロパティ
+### [HTMLRootElement.$iterator]
 ### $allowSelector
 　***[\<root-element\>](#root-element-ルート要素)*** の属性 *[allow-selector](#allow-selector)* の既定値を指定する静的プロパティの名前を示す[シンボル値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Symbol)です。このシンボルを名前に持つプロパティは、継承先で任意に実装します。
 ### $blockSelector
@@ -56,7 +57,7 @@
 
 　判定関数が偽に相当する値(falsely)を返した場合、インスタンスの反復子は対象の要素を返しません。判定は、 *[allowSelector](#allowselector)*, *[blockSelector](#blockselector)* によるフィルタリングに先行して実行されます。関数が存在しない場合、判定は行なわれませんが、フィルタリングは行なわれます。
 ### $iterator
-　インスタンスの[反復子](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Symbol/iterator)の処理対象とする要素群を示す[セレクター](https://developer.mozilla.org/ja/docs/Web/API/Document_object_model/Locating_DOM_elements_using_selectors)か、それを戻り値として返す[関数](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Functions)のいずれかを指定する静的プロパティの名前を示す[シンボル値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Symbol)です。このシンボルを名前に持つ静的プロパティに関数を指定する場合、その戻り値は [Array](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array) であり、かつそれが列挙する値は実際にドキュメント上に存在し、このインスタンスが示す ***[\<root-element\>](#root-element-ルート要素)*** の子孫要素であるべきです。
+　インスタンスの[反復子](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Symbol/iterator)の処理対象とする要素群を示す[セレクター](https://developer.mozilla.org/ja/docs/Web/API/Document_object_model/Locating_DOM_elements_using_selectors)か、任意の要素を列挙した [Array](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array) を戻り値として返す[関数](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Functions)のいずれかを指定する静的プロパティの名前を示す[シンボル値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Symbol)です。関数を指定する場合、戻り値の Array に列挙される要素は、実際にドキュメント上に存在し、かつこのオブジェクトのインスタンスが示す ***[\<root-element\>](#root-element-ルート要素)*** の子孫要素であるべき点に注意が必要です。
 
 　このシンボルを名前に持つ静的プロパティは、継承先で任意に実装可能です。未実装の場合、 *[HTMLRootElement[HTMLRootElement.$iterator]](#HTMLRootElement[HTMLRootElement.$iterator])* の値が使われます。
 ### $precedesBlock
@@ -197,7 +198,7 @@ string = AttributesLocker.val2str(val[, type][, defaultValue]);
 ###### object
 　*[json](#json)* と同じです。
 ###### symbol
-　*[val](#val)* を [シンボル](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E3%82%B7%E3%83%B3%E3%83%9C%E3%83%AB%E5%9E%8B_symbol) として、その説明文を戻り値にします。
+　*[val](#val)* を[シンボル](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E3%82%B7%E3%83%B3%E3%83%9C%E3%83%AB%E5%9E%8B_symbol)として、その説明文を戻り値にします。
 ###### undefined
 　*[val](#val)* を空の文字列にします。
 ##### defaultValue
