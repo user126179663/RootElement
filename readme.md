@@ -40,7 +40,7 @@
 　論理属性で、指定されていると、 *[allow-selector](#allow-selector)* の指定よりも *[block-selector](#block-selector)* の指定を優先させます。
 
 # HTMLRootElement
-　カスタム要素 ***[\<root-element\>](#root-element-ルート要素)*** を定義する [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) です。 ***[HTMLMutationEmitter](#HTMLMutationEmitter)*** を継承しています。
+　カスタム要素 ***[\<root-element\>](#root-element-ルート要素)*** を定義するオブジェクトです。 ***[HTMLMutationEmitter](#HTMLMutationEmitter)*** を継承しています。
 
 ## 静的プロパティ
 ### [HTMLRootElement.$iterator]
@@ -70,11 +70,21 @@
 ## メソッド
 
 # \<mutation-emitter\>: 子孫ツリー監視要素
-　この要素は ***[\<attributes-locker\>](#attributes-locker-属性ロック要素)*** を継承しています。
+　子孫ツリー内の要素の属性やこのカスタム要素への接続、切断などの変化をイベントリスナーに通知します。 ***[HTMLMutationEmitter](#HTMLMutationEmitter)*** により定義されています。
 ## 属性
+***[\<attributes-locker\>](#attributes-locker-属性ロック要素)*** が持つ属性も使えます。
+### observedAttributeFilter
+### observesAttributes
+### observesCharacterData
+### observesChildList
+### observesSubtree
+### recordsAttributeOldValue
+### recordsCharacterDataOldValue
+## イベント
+### mutated
 
 # HTMLMutationEmitter
-　カスタム要素 ***[\<mutation-emitter\>](#mutation-emitter-子孫ツリー監視要素)*** を定義する [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) です。 ***[HTMLAttributesLocker](#HTMLAttributesLocker)*** を継承しています。
+　カスタム要素 ***[\<mutation-emitter\>](#mutation-emitter-子孫ツリー監視要素)*** を定義するオブジェクトです。 ***[HTMLAttributesLocker](#HTMLAttributesLocker)*** を継承しています。
 
 ## 静的プロパティ
 ### $observer
@@ -90,46 +100,49 @@
 ## メソッド
 
 # \<attributes-locker\>: 属性制御要素
-　任意の属性の読み込み、書き込みの可否を制御します。この要素自身に属性はなく、この要素を定義する ***[HTMLAttributesLocker](#HTMLAttributesLocker)*** を継承する [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) 上で、それが定義する要素の属性を制御します。
-
-　継承を前提ないし想定したカスタム要素で、ある継承先では継承元の属性を暴露できても、別の継承先でそれが問題になる場合があります。継承元のカスタム要素は、このカスタム要素を継承することで、継承元の属性を隠蔽したい継承先にその手段を提供できます。
+　任意の属性の読み込み、書き込みの可否を制御するカスタム要素です。この要素自身の属性はなく、この要素を定義する ***[HTMLAttributesLocker](#HTMLAttributesLocker)*** を継承するオブジェクト上で、それが定義する要素の属性を制御します。ある継承先で継承元の属性を操作できても、別の継承先ではそれが望ましくない場合があります。継承元のカスタム要素は、このカスタム要素を継承することで、継承元の属性を隠蔽する手段を継承先に提供します。
+　
+## 属性
+[HTMLElement](https://developer.mozilla.org/ja/docs/Web/API/HTMLElement)から属性を継承します。
 
 # HTMLAttributesLocker
-　カスタム要素 ***[\<attributes-locker\>](#attributes-locker-属性ロック要素)*** を定義する [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) です。[HTMLElement](#HTMLElement) を継承しています。
+　カスタム要素 ***[\<attributes-locker\>](#attributes-locker-属性ロック要素)*** を定義するオブジェクトです。[HTMLElement](#HTMLElement) を継承しています。
 
 ## 静的プロパティ
 ### $attribute
-　制御する属性を示す [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) を指定したプロパティの名前を示す[シンボル値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Symbol)です。このオブジェクトは、このオブジェクトの継承先でこのシンボルを名前にした静的プロパティを作ることで機能します。
+　制御する属性を示すオブジェクトを指定したプロパティの名前を示すシンボルです。プロパティは、このオブジェクトの継承先となるオブジェクトの静的プロパティとして、このシンボルを名前にして設定します。
 
-　プロパティに指定した Object には、制御する属性の名前と制御値をキーと値にしたプロパティを設定します。属性名は[キャメルケース](https://ja.wikipedia.org/wiki/%E3%82%AD%E3%83%A3%E3%83%A1%E3%83%AB%E3%82%B1%E3%83%BC%E3%82%B9)ではなく[ケバブケース](https://en.wikipedia.org/wiki/Letter_case#Kebab_case)で指定します。
+　値のオブジェクトには、制御する属性の名前と制御値をキーと値にしてプロパティを設定します。その際、属性名は[キャメルケース](https://ja.wikipedia.org/wiki/%E3%82%AD%E3%83%A3%E3%83%A1%E3%83%AB%E3%82%B1%E3%83%BC%E3%82%B9)ではなく[ケバブケース](https://en.wikipedia.org/wiki/Letter_case#Kebab_case)で指定します。
 ### LOCKED
-　属性の読み書きの不可を意味する固定値です。 *[$attribute](#attribute)* を名前に持つプロパティが示す [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) に、値として使います。
+　属性の読み書きの不可を意味する固定値です。属性の制御値として使います。
 ### READABLE
-　属性の読み取り可能を意味する固定値です。 *[$attribute](#attribute)* を名前に持つプロパティが示す [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) に、値として使います。
+　属性の読み取り可能を意味する固定値です。属性の制御値として使います。
 ### tagName
 　このカスタム要素のタグを示す文字列で、値は ``attributes-locker`` です。
 ### UNLOCKED
-　属性の読み書きが可能であることを意味する固定値です。 *[$attribute](#attribute)* を名前に持つプロパティが示す [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) に、値として使います。
+　属性の読み書きが可能であることを意味する固定値です。属性の制御値として使います。
 
-　この値は、 *[AttributesLocker.READABLE](#READABLE)*, *[AttributesLocker.WRITABLE](#WRITABLE)* を同時に指定した値と等価です。
+　値は、 *[AttributesLocker.READABLE](#READABLE)*, *[AttributesLocker.WRITABLE](#WRITABLE)* を同時に指定した値と等価です。
 ### WRITABLE
-　属性の書き込み可能を意味する固定値です。 *[$attribute](#attribute)* を名前に持つプロパティが示す [Object](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object) に、値として使います。
+　属性の書き込み可能を意味する固定値です。属性の制御値として使います。
 ## 静的メソッド
 ### attr2val
-　第二引数 *[type](#type)* が文字列 ``ba`` の時、第一引数 *[str](#str)* が [nullish](https://developer.mozilla.org/ja/docs/Glossary/Nullish) であれば ``false``、それ以外の時は ``true`` を戻り値として返します。str に与えられる値が要素の論理属性である場合に対応することを想定しています。 *[type](#type)* が ``ba`` 以外の時は、同じ引数で *[AttributesLocker.str2val](#str2val)* を実行し、その戻り値を返します。
+　*[AttributesLocker.str2val](#str2val)* のラッパー関数で、同関数の動作に加え、第二引数 *[type](#type)* が文字列 ``ba`` の時、第一引数 *[str](#str)* が [nullish](https://developer.mozilla.org/ja/docs/Glossary/Nullish) であれば ``false``、それ以外は ``true`` を戻り値として返します。これは要素の論理属性を値に変換することを想定した動作で、``ba`` は Boolean Attribute(論理属性) の略です。
 #### 構文
 ```javasscript
-converted = AttributesLocker.attr2val(str, type[, defaultValue]);
+val = AttributesLocker.attr2val(str, type[, defaultValue]);
 ```
 #### 引数
 ##### str
-　*[AttributesLocker.str2val](#str2val)* の引数 *[type](#type)* と同じです。
+　*[AttributesLocker.str2val](#str2val)* の第一引数 *[str](#str)* と同じです。
 ##### type
-　*[AttributesLocker.str2val](#str2val)* の引数 *[type](#type)* の対応に加え、文字列で ``ba`` を指定できます。
+　*[AttributesLocker.str2val](#str2val)* の第二引数 *[type](#type)* の対応に加え、文字列で ``ba`` を指定できます。
+###### ba
+　*[str](#str)* が [nullish](https://developer.mozilla.org/ja/docs/Glossary/Nullish) であれば ``false``、それ以外（空文字や ``0`` などの nullish ではない [falsy](https://developer.mozilla.org/ja/docs/Glossary/Falsy) の値 を含む）は ``true`` を戻り値として返します。
 ##### defaultValue
-　*[str](#str)* を *[type](#type)* に指定された型に変換できなかった場合などに、既定値として返す値を任意で指定します。
+　*[AttributesLocker.str2val](#str2val)* の第三引数 *[defaultValue](#defaultValue)* と同じです。
 #### 戻り値
-　*[type](#type)* で指定された型の値が返されます。変換が失敗した場合は *[defaultValue](#defaultValue)* が返ります。 *[type](#type)* に対応しない型を指定した場合は *[str](#str)* がそのまま返ります。
+　*[type](#type)* で指定された型の値が返されます。変換できなかった場合は *[defaultValue](#defaultValue)* が返ります。 *[type](#type)* に対応しない型を指定した場合は *[str](#str)* がそのまま返ります。
 ### camelize
 　第一引数 *[str](#str-1)* に指定された文字列をキャメルケースに変換します。
 #### 構文
@@ -161,11 +174,15 @@ converted = AttributesLocker.str2val(str, type[, defaultValue]);
 ###### bigint
 　*[str](#str)* を [BigInt](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/BigInt) に変換します。変換に失敗した場合は *[defaultValue](#defaultValue)* を返します。
 ###### boolean
-　*[str](#str)* を[論理値プリミティブ](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E8%AB%96%E7%90%86%E5%9E%8B_boolean)に変換します。変換は[二重の否定論理演算子](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Logical_NOT#%E4%BA%8C%E9%87%8D%E5%90%A6%E5%AE%9A_!!)で行なわれます。そのため文字列の ``'false'`` は ``true`` に変換されます。
+　*[str](#str)* を[論理値プリミティブ](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E8%AB%96%E7%90%86%E5%9E%8B_boolean)に変換します。変換は[二重の否定論理演算子](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Logical_NOT#%E4%BA%8C%E9%87%8D%E5%90%A6%E5%AE%9A_!!)で行なわれます。そのため文字列の ``false`` は ``true`` に変換されます。
 ###### function
 　*[str](#str)* を [Function() コンストラクター](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Function/Function)の引数にして[関数](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Functions)に変換します。
+###### integer
+　*[str](#str)* を整数に変換します。 *[str](#str)* が小数を示す場合、小数点以下は切り捨てられます。[NaN](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/NaN) になった場合は *[defaultValue](#defaultValue)* を返します。
 ###### json
 　*[str](#str)* を [JSON](https://ja.wikipedia.org/wiki/JavaScript_Object_Notation) として、[JSON.parse()](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse) によって変換します。変換に失敗した場合は *[defaultValue](#defaultValue)* を返します。
+###### nn
+　*[str](#str)* を[自然数](https://ja.wikipedia.org/wiki/%E8%87%AA%E7%84%B6%E6%95%B0)に変換します。この自然数は ``0`` を含みます。 *[str](#str)* が小数を示す場合、小数点以下は切り捨てられます。また負の数は ``0`` になります。[NaN](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/NaN) になった場合は *[defaultValue](#defaultValue)* を返します。
 ###### number
 　*[str](#str)* を [Number](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Number) に変換します。[NaN](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/NaN) になった場合は *[defaultValue](#defaultValue)* を返します。
 ###### object
@@ -243,11 +260,12 @@ boolean = attributesLocker.setLockedAttribute(name[, value][, typeOrAsBooleanAtt
 ##### value
 　指定した属性に書き込む値を指定します。
 ##### typeOrAsBooleanAttribute
-　*[value](#value)* に指定した値の型を文字列で明示します。*[value](#value)* は明示された型に対応する方法で属性値として書き込み可能な文字列形式に変換されます。未指定の場合は自動で値の型を判定します。
+　*[value](#value)* に指定した値の型を文字列で明示します。 *[value](#value)* は明示された型に対応する方法で属性値として書き込み可能な文字列形式に変換されます。未指定の場合は自動で値の型を判定します。
 
 　型の名前ではなく[論理値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E8%AB%96%E7%90%86%E5%9E%8B_boolean)を設定した場合、書き込み先の属性を論理属性として認識します。``true`` の場合は空の値で指定の属性を要素に追加し、``false`` の場合は指定の属性を要素から削除します。
 #### 戻り値
 　書き込みの正否を示す[論理値](https://developer.mozilla.org/ja/docs/Web/JavaScript/Data_structures#%E8%AB%96%E7%90%86%E5%9E%8B_boolean)です。属性の書き込みを行なえなかった場合は ``false`` を返し、そうでない場合は ``true`` を返します。
+
 ### isFlaggedAttribute
 　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性の制御値と、第二引数 *[flags](#flags)* に指定した制御値との[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)を評価し、その結果を戻り値にします。
 #### 構文
@@ -260,7 +278,8 @@ result = attributesLocker.isFlaggedAttribute(name, flags);
 ##### flags
 　*[name](#name)* に指定した名前を持つ属性に設定された制御値と[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)を行なう値を指定します。
 #### 戻り値
-　[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)で評価した結果を示す数値です。[name](#name) に指定した属性が存在しないか、制御値を設定されていない場合は ``false`` を返します。
+　[ビット論理積](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/Bitwise_AND)で評価した結果を示す数値です。 *[name](#name)* に指定した属性が存在しないか、制御値を設定されていない場合は ``false`` を返します。
+
 ### isLockedAttribute
 　第一引数 *[name](#name)* に指定した文字列に一致する名前の属性が読み取り、書き込みいずれも不可相当であるかを確認し、その結果を戻り値にします。
 #### 構文
