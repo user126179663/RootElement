@@ -505,31 +505,79 @@ class HTMLAttrSpec extends HTMLElement {
 		
 	}
 	
-	getSpec(name) {
+	*[Symbol.iterator]() {
 		
-		const spec =
-			this.querySelector(`:scope > [name="${name && typeof name === 'object' ? name.name : name}"]:last-of-type`);
+		const { children } = this, l = children.length;
+		let i, child;
+		
+		i = -1;
+		while (++i < l) (child = children[i]) instanceof HTMLAttrVal && (yield child);
+		
+	}
+	
+	getSpec(nameOrAttr) {
+		
+		const	specs =	this.querySelectorAll
+								(`:scope > [name="${nameOrAttr instanceof Attr ? nameOrAttr.name : nameOrAttr}"]`),
+				spec = specs?.[specs.length - 1];
 		
 		return spec instanceof HTMLAttrVal ? spec : null;
 		
 	}
 	specify(element) {
 		
-		const	{ camelize } = AttributesLocker, { $false } = HTMLAttrVal, { asCamel } = this, { attributes } = element,
-				l = attributes.length, specified = {};
-		let i,v, attr;
+		const	{ camelize } = HTMLAttributesLocker,
+				{ $false } = HTMLAttrVal,
+				{ asCamel, inherit } = this,
+				{ attributes } = element,
+				host = element.closest(inherit),
+				hostAttributes = host?.attributes,
+				specified = {};
+		let i,k,k0,v, spec, attr;
 		
-		i = -1;
-		while (++i < l)	attr = attributes[i],
-								(v = this.specifyAttr(attr)) === $false ||
-									(specified[asCamel ? camelize(attr.name) : attr.name] = v);
+		for (spec of this) {
+			
+			(
+				v =	(
+							attr = attributes[k = spec.name] ??
+								((k0 = spec.inheritedProperty) && k0 in host ? host[k0] : hostAttributes?.[spec.inheritedName]),
+							attr instanceof Attr ? spec.specify(attr) : attr
+						)
+			) === $false || (specified[asCamel ? camelize(k) : k] = v);
+			
+		}
+		
+		//for (v of this) {
+		//	
+		//	if ((k = v.name) in attributes) {
+		//		
+		//		(v = this.specifyAttr(attr = attributes[k])) === $false ||
+		//			(specified[asCamel ? camelize(k) : k] = v);
+		//		
+		//	} else if (globalNode instanceof Element && (k0 = v.globalName) in attributes) {
+		//		
+		//		const { attributes } = globalNode; 
+		//		
+		//		(v0 = this.specifyAttr(attr = attributes[k0], k) === $false) ||
+		//			(specified[asCamel ? camelize(k) : k] = v0);
+		//		
+		//	}
+		//	
+		//}
+		//
+		//const { attributes } = element, l = attributes.length;
+		//
+		//i = -1;
+		//while (++i < l)	attr = attributes[i],
+		//						(v = this.specifyAttr(attr)) === $false ||
+		//							(specified[asCamel ? camelize(attr.name) : attr.name] = v);
 		
 		return specified;
 		
 	}
-	specifyAttr(attr) {
+	specifyAttr(attr, as) {
 		
-		const spec = attr instanceof Attr && this.getSpec(attr);
+		const spec = this.getSpec(as || attr);
 		
 		return spec ? spec.specify(attr) : attr?.value;
 		
@@ -543,6 +591,16 @@ class HTMLAttrSpec extends HTMLElement {
 	set asCamel(v) {
 		
 		this.toggleAttribute('camel-case', !!v);
+		
+	}
+	get inherit() {
+		
+		return this.getAttribute('inherit');
+		
+	}
+	set inherit(v) {
+		
+		return this.setAttribute('inherit', v);
 		
 	}
 	
@@ -589,6 +647,36 @@ class HTMLAttrVal extends HTMLElement {
 	set asBool(v) {
 		
 		return this.toggleAttribute('bool', !!v);
+		
+	}
+	get inheritedName() {
+		
+		return this.getAttribute('inherited-name');
+		
+	}
+	set inheritedName(v) {
+		
+		return this.setAttribute('inherited-name', v);
+		
+	}
+	get inheritedProperty() {
+		
+		return this.getAttribute('inherited-property');
+		
+	}
+	set inheritedProperty(v) {
+		
+		return this.setAttribute('inherited-property', v);
+		
+	}
+	get name() {
+		
+		return this.getAttribute('name');
+		
+	}
+	set name(v) {
+		
+		return this.setAttribute('name', v);
 		
 	}
 	get raw() {
@@ -687,7 +775,7 @@ class HTMLAttrBool extends HTMLAttrVal {
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr, noDefault) {
+	[HTMLAttrVal.$specify](value, name, attr) {
 		
 		return !!value;
 		
@@ -710,7 +798,7 @@ class HTMLAttrFunc extends HTMLAttrVal {
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr, noDefault) {
+	[HTMLAttrVal.$specify](value, name, attr) {
 		
 		return new Function(''+value);
 		
@@ -723,13 +811,15 @@ class HTMLAttrNum extends HTMLAttrVal {
 	
 	static {
 		
-		this.tagName = 'attr-num';
+		this.tagName = 'attr-num',
+		
+		this.$NaN = Symbol('HTMLAttrNum.NaN');
 		
 	}
 	
 	static toNumber(value, defaultValue) {
 		
-		return Number.isNaN(value = +value) ? this.raw ? value : defaultValue : value;
+		return value === '' || Number.isNaN(value = +value) ? defaultValue : value;
 		
 	}
 	
@@ -741,14 +831,16 @@ class HTMLAttrNum extends HTMLAttrVal {
 	
 	toNumber(value) {
 		
-		const	{ toNumber } = HTMLAttrNum, { int, max, min, textContent } = this;
+		const	{ $NaN, toNumber } = HTMLAttrNum, { int, max, min, raw, textContent } = this;
+		let v;
 		
-		if ((value = (value = toNumber(value, toNumber(textContent, null)))) === null) return value;
+		if ((v = toNumber(value, raw ? $NaN : toNumber(textContent, null))) === null) return v;
+		else if (v === $NaN) return value;
 		
-		typeof max === 'number' && value > max && (value = max),
-		typeof min === 'number' && value < min && (value = min);
+		typeof max === 'number' && v > max && (v = max),
+		typeof min === 'number' && v < min && (v = min);
 		
-		return int ? parseInt(value) : value;
+		return int ? parseInt(v) : v;
 		
 	}
 	
@@ -770,7 +862,7 @@ class HTMLAttrNum extends HTMLAttrVal {
 	}
 	get max() {
 		
-		return HTMLAttrNum.toNumber(this.getAttribute('max'), null);
+		return HTMLAttrNum.toNumber(this.getAttribute('max') ?? Infinity, Infinity);
 		
 	}
 	set max(v) {
@@ -780,7 +872,7 @@ class HTMLAttrNum extends HTMLAttrVal {
 	}
 	get min() {
 		
-		return HTMLAttrNum.toNumber(this.getAttribute('min'), null);
+		return HTMLAttrNum.toNumber(this.getAttribute('min') ?? -Infinity, -Infinity);
 		
 	}
 	set min(v) {
@@ -842,7 +934,7 @@ class HTMLAttrStr extends HTMLAttrVal {
 	
 	[HTMLAttrVal.$specify](value, name, attr) {
 		
-		return '' + (valule ?? '');
+		return '' + (value ?? '');
 		
 	}
 	
@@ -1034,6 +1126,31 @@ class HTMLRootElement extends HTMLMutationEmitter {
 		
 	}
 	
+	*[Symbol.iterator]() {
+		
+		const	{ constructor } = this,
+				{ $iterates, $iterator } = HTMLRootElement,
+				iterator = constructor[$iterator],
+				iterated = typeof iterator === 'function' ? iterator.call(this) : this.querySelectorAll(iterator),
+				l = iterated?.length;
+		
+		if (l) {
+			
+			const { precedesBlock } = this;
+			let i, element;
+			
+			i = -1;
+			while (++i < l) (this[$iterates]?.(element = iterated[i], iterated) ?? (element = iterated[i])) &&
+				(
+					precedesBlock ?
+						(!this.matchesByBlockSelector(element) && this.matchesByAllowSelector(element)) :
+						(this.matchesByAllowSelector(element) || !this.matchesByBlockSelector(element))
+				) && (yield element);
+			
+		}
+		
+	}
+	
 	getCustomDSV(element, name) {
 		
 		const { $cdp, getPrefixedDSV } = HTMLRootElement;
@@ -1139,31 +1256,6 @@ class HTMLRootElement extends HTMLMutationEmitter {
 		
 	}
 	
-	*[Symbol.iterator]() {
-		
-		const	{ constructor } = this,
-				{ $iterates, $iterator } = HTMLRootElement,
-				iterator = constructor[$iterator],
-				iterated = typeof iterator === 'function' ? iterator.call(this) : this.querySelectorAll(iterator),
-				l = iterated?.length;
-		
-		if (l) {
-			
-			const { precedesBlock } = this;
-			let i, element;
-			
-			i = -1;
-			while (++i < l) (this[$iterates]?.(element = iterated[i], iterated) ?? (element = iterated[i])) &&
-				(
-					precedesBlock ?
-						(!this.matchesByBlockSelector(element) && this.matchesByAllowSelector(element)) :
-						(this.matchesByAllowSelector(element) || !this.matchesByBlockSelector(element))
-				) && (yield element);
-			
-		}
-		
-	}
-	
 	get allowSelector() {
 		
 		return this.getLockedAttribute('allow-selector', this.constructor[HTMLRootElement.$allowSelector]);
@@ -1172,6 +1264,16 @@ class HTMLRootElement extends HTMLMutationEmitter {
 	set allowSelector(v) {
 		
 		return this.setAttribute('allow-selector', v);
+		
+	}
+	get attrSpec() {
+		
+		return document.getElementById(this.getAttribute('attr-spec'));
+		
+	}
+	set attrSpec(v) {
+		
+		this.setAttribute('attr-spec', v);
 		
 	}
 	get blockSelector() {
