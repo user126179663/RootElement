@@ -137,26 +137,47 @@ class HTMLAttributesLocker extends HTMLElement {
 		return this.constructor?.[$attribute]?.[name] ?? UNLOCKED;
 		
 	}
-	getLockedAttribute(name, defaultValue, type = 'string') {
+	getLockedAttribute(name, defaultValue, specification, ...args) {
 		
 		return	this.isReadableAttribute(name) ?
-						HTMLAttributesLocker.attr2val(this.getAttribute(name), defaultValue, type) : defaultValue;
+						//document.createElement('attr-' + type)?.specify?.(this.attributes[name])
+						specification.specify(this.getAttribute(name, ...args)) : defaultValue;
 		
 	}
-	setLockedAttribute(name, value, typeOrAsBooleanAttribute) {
+	//getLockedAttribute(name, defaultValue, type = 'string') {
+	//	
+	//	return	this.isReadableAttribute(name) ?
+	//					//document.createElement('attr-' + type)?.specify?.(this.attributes[name])
+	//					HTMLAttributesLocker.attr2val(this.getAttribute(name), defaultValue, type) : defaultValue;
+	//	
+	//}
+	setLockedAttribute(name, value, specificationOrAsBooleanAttribute, ...args) {
 		
 		const writes = this.isWritableAttribute(name);
 		
 		writes &&
 			(
-				typeof typeOrAsBooleanAttribute === 'string' ?
-					this.setAttribute(name, HTMLAttributesLocker.val2str(value, typeOrAsBooleanAttribute)) :
-					this.toggleAttribute(name, !!value)
+				typeof specificationOrAsBooleanAttribute instanceof HTMLAttrVal ?
+					specificationOrAsBooleanAttribute.specify(value, ...args) : this.toggleAttribute(name, !!value)
 			);
 		
 		return writes;
 		
 	}
+	//setLockedAttribute(name, value, typeOrAsBooleanAttribute) {
+	//	
+	//	const writes = this.isWritableAttribute(name);
+	//	
+	//	writes &&
+	//		(
+	//			typeof typeOrAsBooleanAttribute === 'string' ?
+	//				this.setAttribute(name, HTMLAttributesLocker.val2str(value, typeOrAsBooleanAttribute)) :
+	//				this.toggleAttribute(name, !!value)
+	//		);
+	//	
+	//	return writes;
+	//	
+	//}
 	
 	isFlaggedAttribute(name, flags) {
 		
@@ -402,15 +423,14 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 		}
 		
 	}
-	setObserverInitValue(key, value, typeOrAsBooleanAttribute, reflects) {
+	setObserverInitValue(key, value, reflects, specificationOrAsBooleanAttribute, ...args) {
 		
 		const { $init, getAttrNameByInitKey } = HTMLMutationEmitter, attrName = getAttrNameByInitKey(key);
 		
 		attrName &&
-			(
-				this.setLockedAttribute
-					(attrName, value = typeof value === 'string' || value, typeOrAsBooleanAttribute) || !reflects
-			) &&
+			this.setLockedAttribute
+				(attrName, value = typeof value === 'string' || value, specificationOrAsBooleanAttribute, ...args) &&
+			reflects &&
 			(this[$init][key] = Array.isArray(value) ? [ ...value ] : !!value, this.observeMutation());
 		
 	}
@@ -422,7 +442,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set observedAttributeFilter(v) {
 		
-		this.setObserverInitValue('attributeFilter', v, 'array');
+		this.setObserverInitValue('attributeFilter', v, true, HTMLAttrArray);
 		
 	}
 	get observesAttributes() {
@@ -432,7 +452,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set observesAttributes(v) {
 		
-		this.setObserverInitValue('attributes', v, true);
+		this.setObserverInitValue('attributes', v, true, true);
 		
 	}
 	get observesCharacterData() {
@@ -442,7 +462,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set observesCharacterData(v) {
 		
-		this.setObserverInitValue('characterData', v, true);
+		this.setObserverInitValue('characterData', v, true, true);
 		
 	}
 	get observesChildList() {
@@ -452,7 +472,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set observesChildList(v) {
 		
-		this.setObserverInitValue('childList', v, true);
+		this.setObserverInitValue('childList', v, true, true);
 		
 	}
 	get observesSubtree() {
@@ -462,7 +482,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set observesSubtree(v) {
 		
-		this.setObserverInitValue('subtree', v, true);
+		this.setObserverInitValue('subtree', v, true, true);
 		
 	}
 	get recordsAttributeOldValue() {
@@ -472,7 +492,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set recordsAttributeOldValue(v) {
 		
-		this.setObserverInitValue('attributeOldValue', v, true);
+		this.setObserverInitValue('attributeOldValue', v, true, true);
 		
 	}
 	get recordsCharacterDataOldValue() {
@@ -482,7 +502,7 @@ class HTMLMutationEmitter extends HTMLAttributesLocker {
 	}
 	set recordsCharacterDataOldValue(v) {
 		
-		this.setObserverInitValue('characterDataOldValue', v, true);
+		this.setObserverInitValue('characterDataOldValue', v, true, true);
 		
 	}
 	
@@ -533,44 +553,18 @@ class HTMLAttrSpec extends HTMLElement {
 				host = element.closest(inherit),
 				hostAttributes = host?.attributes,
 				specified = {};
-		let i,k,k0,v, spec, attr;
+		let k,k0,v, spec, attr;
 		
 		for (spec of this) {
 			
 			(
-				v =	(
-							attr = attributes[k = spec.name] ??
-								((k0 = spec.inheritedProperty) && k0 in host ? host[k0] : hostAttributes?.[spec.inheritedName]),
-							attr instanceof Attr ? spec.specify(attr) : attr
-						)
+				v =	(attr = attributes[k = spec.name]) instanceof Attr ?
+							spec.specify(attr) :
+							(k0 = spec.inheritProperty) ?	k0 in host ? host[k0] : spec.specify() :
+																	spec.specify(hostAttributes?.[spec.inherit])
 			) === $false || (specified[asCamel ? camelize(k) : k] = v);
 			
 		}
-		
-		//for (v of this) {
-		//	
-		//	if ((k = v.name) in attributes) {
-		//		
-		//		(v = this.specifyAttr(attr = attributes[k])) === $false ||
-		//			(specified[asCamel ? camelize(k) : k] = v);
-		//		
-		//	} else if (globalNode instanceof Element && (k0 = v.globalName) in attributes) {
-		//		
-		//		const { attributes } = globalNode; 
-		//		
-		//		(v0 = this.specifyAttr(attr = attributes[k0], k) === $false) ||
-		//			(specified[asCamel ? camelize(k) : k] = v0);
-		//		
-		//	}
-		//	
-		//}
-		//
-		//const { attributes } = element, l = attributes.length;
-		//
-		//i = -1;
-		//while (++i < l)	attr = attributes[i],
-		//						(v = this.specifyAttr(attr)) === $false ||
-		//							(specified[asCamel ? camelize(attr.name) : attr.name] = v);
 		
 		return specified;
 		
@@ -614,7 +608,35 @@ class HTMLAttrVal extends HTMLElement {
 		this.tagName = 'attr-val',
 		
 		this.$false = Symbol('HTMLAttrVal.false'),
-		this.$specify = Symbol('HTMLAttrVal.specify');
+		this.$specify = Symbol('HTMLAttrVal.specify'),
+		this.$specifyValue = Symbol('HTMLAttrVal.specifyValue');
+		
+	}
+	
+	static specify(value, name, attr, defaultValue, raw, asBooleanAttribute, scope, ...args) {
+		
+		const { $false, $specify, $specifyValue } = HTMLAttrVal;
+		
+		return	asBooleanAttribute && (value === null || value === undefined) && $false ||
+						attr instanceof Attr ?
+							(scope ?? this)?.[$specify](value, name || attr.name, attr, defaultValue, raw, ...args) :
+							typeof (scope = scope ?? this)?.[$specifyValue] === 'function' ?
+								scope[$specifyValue](value, defaultValue, raw, ...args) :
+								scope?.[$specify]?.(value, undefined, undefined, defaultValue, raw, ...args);
+		
+	}
+	
+	static specifyValue(value, defaultValue, raw, asBooleanAttribute, scope, ...args) {
+		
+		return HTMLAttrVal.specify(value, undefined, undefined, defaultValue, raw, asBooleanAttribute, scope, ...args);
+		
+	}
+	
+	static toStr(value, defaultValue, raw, scope, ...args) {
+		
+		const toStr = (scope ?? this)?.[HTMLAttrVal.$toStr];
+		
+		return typeof toStr === 'function' ? toStr(value, defaultValue, raw, ...args) : raw ? value : ''+value;
 		
 	}
 	
@@ -624,20 +646,40 @@ class HTMLAttrVal extends HTMLElement {
 		
 	}
 	
-	specify(attr) {
+	specify(attr, ...args) {
 		
-		const { $specify, $specifyValue } = HTMLAttrVal;
+		const { specify } = HTMLAttrVal, { asBool, raw } = this;
 		
 		if (attr instanceof Attr) {
 			
 			const { name, value } = attr;
 			
-			return this[$specify]?.(value, name, attr);
+			return specify(value, name, attr, undefined, raw, asBool, this, ...args);
 			
-		} else return	this.asBool ? HTMLAttrVal.$false :
-								this[typeof this[$specifyValue] === 'function' ? $specifyValue : $specify]?.(attr);
+		} else return specify(attr, undefined, undefined, undefined, raw, asBool, this, ...args);
 		
 	}
+	
+	toStr(value, defaultValue, ...args) {
+		
+		return HTMLAttrVal.toStr(value, defaultValue, this.raw, this, ...args);
+		
+	}
+	
+	//specify(attr) {
+	//	
+	//	const { $specify, $specifyValue } = HTMLAttrVal;
+	//	
+	//	if (attr instanceof Attr) {
+	//		
+	//		const { name, value } = attr;
+	//		
+	//		return this[$specify]?.(value, name, attr);
+	//		
+	//	} else return	this.asBool ? HTMLAttrVal.$false :
+	//							this[typeof this[$specifyValue] === 'function' ? $specifyValue : $specify]?.(attr);
+	//	
+	//}
 	
 	get asBool() {
 		
@@ -649,24 +691,24 @@ class HTMLAttrVal extends HTMLElement {
 		return this.toggleAttribute('bool', !!v);
 		
 	}
-	get inheritedName() {
+	get inherit() {
 		
-		return this.getAttribute('inherited-name');
-		
-	}
-	set inheritedName(v) {
-		
-		return this.setAttribute('inherited-name', v);
+		return this.getAttribute('inherit');
 		
 	}
-	get inheritedProperty() {
+	set inherit(v) {
 		
-		return this.getAttribute('inherited-property');
+		return this.setAttribute('inherit', v);
 		
 	}
-	set inheritedProperty(v) {
+	get inheritProperty() {
 		
-		return this.setAttribute('inherited-property', v);
+		return this.getAttribute('inherit-property');
+		
+	}
+	set inheritProperty(v) {
+		
+		return this.setAttribute('inherit-property', v);
 		
 	}
 	get name() {
@@ -697,7 +739,21 @@ class HTMLAttrArray extends HTMLAttrVal {
 	
 	static {
 		
-		this.tagName = 'attr-array';
+		this.tagName = 'attr-array',
+		
+		this.delimiter = ' ';
+		
+	}
+	
+	static [HTMLAttrVal.$specify](str, defaultValue, raw, delimiter = HTMLAttrArray.delimiter) {
+		
+		return (str = ''+str)?.split?.(delimiter) ?? [];
+		
+	}
+	
+	static [HTMLAttrVal.$toStr](value, defaultValue, raw, delimiter = HTMLAttrArray.delimiter) {
+		
+		return (value = (''+value))?.join?.(delimiter) ?? value;
 		
 	}
 	
@@ -707,15 +763,21 @@ class HTMLAttrArray extends HTMLAttrVal {
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
+	[HTMLAttrVal.$specify](str, name, attr, defaultValue, raw, delimiter = this.delimiter) {
 		
-		return value?.split?.(this.delimiter) ?? [];
+		return HTMLAttrArray[HTMLAttrVal.$specify](str, defaultValue, raw, delimiter);
+		
+	}
+	
+	[HTMLAttrVal.$toStr](value, defaultValue, raw, delimiter = this.delimiter) {
+		
+		return HTMLAttrArray[HTMLAttrVal.$toStr](value, defaultValue, raw, delimiter);
 		
 	}
 	
 	get delimiter() {
 		
-		return this.getAttribute('delimiter') ?? ' ';
+		return this.getAttribute('delimiter') ?? HTMLAttrArray.delimiter;
 		
 	}
 	set delimiter(v) {
@@ -735,13 +797,7 @@ class HTMLAttrBigInt extends HTMLAttrVal {
 		
 	}
 	
-	constructor() {
-		
-		super();
-		
-	}
-	
-	[HTMLAttrVal.$specify](value, name, attr, defaultValue = this.textContent) {
+	static [HTMLAttrVal.$specify](value, defaultValue, raw) {
 		
 		try {
 			
@@ -749,14 +805,43 @@ class HTMLAttrBigInt extends HTMLAttrVal {
 			
 		} catch (error) {
 			
-			console.error(error),
-			this.raw || (value = this[HTMLAttrBigInt.$specify](defaultValue, undefined, undefined, 0));
+			console.info(error),
+			raw || (value = HTMLAttrBigInt[HTMLAttrVal.$specify](defaultValue, 0, raw));
 			
 		};
 		
 		return value;
 		
 	}
+	
+	constructor() {
+		
+		super();
+		
+	}
+	
+	[HTMLAttrVal.$specify](value, name, attr, defaultValue = this.textContent, raw = this.raw) {
+		
+		return HTMLAttrBigInt[HTMLAttrVal.$specify](value, defaultValue, raw);
+		
+	}
+	
+	//[HTMLAttrVal.$specify](value, name, attr, defaultValue = this.textContent) {
+	//	
+	//	try {
+	//		
+	//		value = BigInt(value);
+	//		
+	//	} catch (error) {
+	//		
+	//		console.info(error),
+	//		this.raw || (value = this[HTMLAttrBigInt.$specify](defaultValue, undefined, undefined, 0));
+	//		
+	//	};
+	//	
+	//	return value;
+	//	
+	//}
 	
 }
 customElements.define(HTMLAttrBigInt.tagName, HTMLAttrBigInt);
@@ -769,15 +854,21 @@ class HTMLAttrBool extends HTMLAttrVal {
 		
 	}
 	
+	static [HTMLAttrVal.$specify](value) {
+		
+		return !!value;
+		
+	}
+	
 	constructor() {
 		
 		super();
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
+	[HTMLAttrVal.$specify](value) {
 		
-		return !!value;
+		return HTMLAttrBool[HTMLAttrVal.$specify](value);
 		
 	}
 	
@@ -792,20 +883,110 @@ class HTMLAttrFunc extends HTMLAttrVal {
 		
 	}
 	
+	static [HTMLAttrVal.$specify](value, defaultValue, raw, ...args) {
+		
+		return new Function(...args, ''+value);
+		
+	}
+	
 	constructor() {
 		
 		super();
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
+	[HTMLAttrVal.$specify](value, name, attr, defaultValue, raw, ...args) {
 		
-		return new Function(''+value);
+		return HTMLAttrFunc[HTMLAttrVal.$specify](value, defaultValue, raw, ...args);
 		
 	}
 	
 }
 customElements.define(HTMLAttrFunc.tagName, HTMLAttrFunc);
+
+class HTMLAttrJSON extends HTMLAttrVal {
+	
+	static {
+		
+		this.tagName = 'attr-json',
+		
+		this.defaultValue = 'null',
+		this.strDefaultValue = null;
+		
+	}
+	
+	static [HTMLAttrVal.$specify](value, defaultValue = HTMLAttrJSON.defaultValue, raw) {
+		
+		try {
+			
+			value = JSON.parse(value);
+			
+		} catch (error) {
+			
+			console.info(value, error),
+			raw || (value = HTMLAttrJSON[HTMLAttrVal.$specify](defaultValue, HTMLAttrJSON.defaultValue, raw));
+			
+		}
+		
+		return value;
+		
+	}
+	
+	static [HTMLAttrVal.$toStr](value, defaultValue = HTMLAttrJSON.strDefaultValue, raw) {
+		
+		
+		try {
+			
+			value = JSON.stringify(value);
+			
+		} catch (error) {
+			
+			console.info(value, error),
+			raw || (value = HTMLAttrJSON[HTMLAttrVal.$toStr](defaultValue, HTMLAttrJSON.strDefaultValue, raw));
+			
+		};
+		
+		return value;
+		
+	}
+	
+	constructor() {
+		
+		super();
+		
+	}
+	
+	[HTMLAttrVal.$specify](value, name, attr, defaultValue = this.textContent, raw = this.raw) {
+		
+		return HTMLAttrJSON[HTMLAttrVal.$specify](value, defaultValue, raw);
+		
+	}
+	
+	[HTMLAttrVal.$toStr](value, defaultValue = this.textContent, raw = this.raw) {
+		
+		return HTMLAttrJSON[HTMLAttrVal.$toStr](value, defaultValue, raw);
+		
+	}
+	
+	//[HTMLAttrVal.$specify](value, name, attr, defaultValue = this.textContent) {
+	//	
+	//	try {
+	//		
+	//		value = JSON.parse(value);
+	//		
+	//	} catch (error) {
+	//		
+	//		console.info(error),
+	//		this.raw || (value = this[HTMLAttrVal.$specify](defaultValue, undefined, undefined, 'null'));
+	//		
+	//	};
+	//	
+	//	return value;
+	//	
+	//}
+	
+}
+customElements.define(HTMLAttrJSON.tagName, HTMLAttrJSON);
 
 class HTMLAttrNum extends HTMLAttrVal {
 	
@@ -813,11 +994,46 @@ class HTMLAttrNum extends HTMLAttrVal {
 		
 		this.tagName = 'attr-num',
 		
-		this.$NaN = Symbol('HTMLAttrNum.NaN');
+		this.$failed = Symbol('HTMLAttrNum.failed'),
+		this.$raw = Symbol('HTMLAttrNum.raw'),
+		
+		this.defaultValue = null,
+		this.isInt = false,
+		this.max = Infinity,
+		this.min = -Infinity;
 		
 	}
 	
-	static toNumber(value, defaultValue) {
+	static [HTMLAttrVal.$specify](
+		value,
+		defaultValue = HTMLAttrNum.defaultValue,
+		raw,
+		min = HTMLAttrNum.min,
+		max = HTMLAttrNum.max,
+		isInt = HTMLAttrNum.isInt
+	) {
+		
+		const	{ $failed, $raw, toNumber } = HTMLAttrNum;
+		let v;
+		
+		if ((v = toNumber(value, raw ? $raw : toNumber(defaultValue, $failed))) === $failed) {
+			
+			return HTMLAttrNum.defaultValue;
+		
+		} else if (v === $raw) {
+			
+			return value;
+			
+		}
+		
+		typeof max === 'number' && v > max && (v = max),
+		typeof min === 'number' && v < min && (v = min);
+		
+		return isInt ? parseInt(v) : v;
+		
+	}
+	
+	static toNumber(value, defaultValue = HTMLAttrNum.defaultValue) {
 		
 		return value === '' || Number.isNaN(value = +value) ? defaultValue : value;
 		
@@ -829,26 +1045,41 @@ class HTMLAttrNum extends HTMLAttrVal {
 		
 	}
 	
-	toNumber(value) {
+	[HTMLAttrVal.$specify](
+		value,
+		name,
+		attr,
+		defaultValue = this.textContent,
+		raw = this.raw,
+		min = this.min,
+		max = this.max,
+		int = this.int
+	) {
 		
-		const	{ $NaN, toNumber } = HTMLAttrNum, { int, max, min, raw, textContent } = this;
-		let v;
-		
-		if ((v = toNumber(value, raw ? $NaN : toNumber(textContent, null))) === null) return v;
-		else if (v === $NaN) return value;
-		
-		typeof max === 'number' && v > max && (v = max),
-		typeof min === 'number' && v < min && (v = min);
-		
-		return int ? parseInt(v) : v;
+		return HTMLAttrNum[HTMLAttrVal.$specify](value, defaultValue, raw, min, max, int);
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
-		
-		return this.toNumber(value);
-		
-	}
+	//toNumber(value) {
+	//	
+	//	const	{ $NaN, toNumber } = HTMLAttrNum, { int, max, min, raw, textContent } = this;
+	//	let v;
+	//	
+	//	if ((v = toNumber(value, raw ? $NaN : toNumber(textContent, null))) === null) return v;
+	//	else if (v === $NaN) return value;
+	//	
+	//	typeof max === 'number' && v > max && (v = max),
+	//	typeof min === 'number' && v < min && (v = min);
+	//	
+	//	return int ? parseInt(v) : v;
+	//	
+	//}
+	//
+	//[HTMLAttrVal.$specify](value, name, attr) {
+	//	
+	//	return this.toNumber(value);
+	//	
+	//}
 	
 	get int() {
 		
@@ -862,7 +1093,7 @@ class HTMLAttrNum extends HTMLAttrVal {
 	}
 	get max() {
 		
-		return HTMLAttrNum.toNumber(this.getAttribute('max') ?? Infinity, Infinity);
+		return HTMLAttrNum.toNumber(this.getAttribute('max') ?? HTMLAttrNum.max, HTMLAttrNum.max);
 		
 	}
 	set max(v) {
@@ -872,7 +1103,7 @@ class HTMLAttrNum extends HTMLAttrVal {
 	}
 	get min() {
 		
-		return HTMLAttrNum.toNumber(this.getAttribute('min') ?? -Infinity, -Infinity);
+		return HTMLAttrNum.toNumber(this.getAttribute('min') ?? HTMLAttrNum.min, HTMLAttrNum.min);
 		
 	}
 	set min(v) {
@@ -884,40 +1115,6 @@ class HTMLAttrNum extends HTMLAttrVal {
 }
 customElements.define(HTMLAttrNum.tagName, HTMLAttrNum);
 
-class HTMLAttrJSON extends HTMLAttrVal {
-	
-	static {
-		
-		this.tagName = 'attr-json';
-		
-	}
-	
-	constructor() {
-		
-		super();
-		
-	}
-	
-	[HTMLAttrVal.$specify](value, name, attr, defaultValue = this.textContent) {
-		
-		try {
-			
-			value = JSON.parse(value);
-			
-		} catch (error) {
-			
-			console.error(error),
-			this.raw || (value = this[HTMLAttrVal.$specify](defaultValue, undefined, undefined, 'null'));
-			
-		};
-		
-		return value;
-		
-	}
-	
-}
-customElements.define(HTMLAttrJSON.tagName, HTMLAttrJSON);
-
 class HTMLAttrStr extends HTMLAttrVal {
 	
 	static {
@@ -926,17 +1123,29 @@ class HTMLAttrStr extends HTMLAttrVal {
 		
 	}
 	
+	static [HTMLAttrVal.$specify](value) {
+		
+		return '' + (value ?? '');
+		
+	}
+	
 	constructor() {
 		
 		super();
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
+	[HTMLAttrVal.$specify](value) {
 		
-		return '' + (value ?? '');
+		return HTMLAttrStr[HTMLAttrVal.$specify](value);
 		
 	}
+	
+	//[HTMLAttrVal.$specify](value, name, attr) {
+	//	
+	//	return '' + (value ?? '');
+	//	
+	//}
 	
 }
 customElements.define(HTMLAttrStr.tagName, HTMLAttrStr);
@@ -945,7 +1154,21 @@ class HTMLAttrSymbol extends HTMLAttrVal {
 	
 	static {
 		
-		this.tagName = 'attr-symbol';
+		this.tagName = 'attr-symbol',
+		
+		this.strDefaultValue = '';
+		
+	}
+	
+	static [HTMLAttrVal.$specify](value) {
+		
+		return Symbol(''+value);
+		
+	}
+	
+	static [HTMLAttrVal.$toStr](value, defaultValue = HTMLAttrSymbol.strDefaultValue, raw) {
+		
+		return typeof value === 'symbol' ? value.description : raw ? ''+value : defaultValue;
 		
 	}
 	
@@ -955,11 +1178,23 @@ class HTMLAttrSymbol extends HTMLAttrVal {
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
+	[HTMLAttrVal.$specify](value) {
 		
-		return Symbol(''+value);
+		return HTMLAttrSymbol[HTMLAttrVal.$specify](value);
 		
 	}
+	
+	[HTMLAttrVal.$toStr](value, defaultValue = HTMLAttrSymbol.strDefaultValue, raw = this.raw) {
+		
+		return HTMLAttrSymbol[HTMLAttrVal.$toStr](value, defaultValue, raw);
+		
+	}
+	
+	//[HTMLAttrVal.$specify](value, name, attr) {
+	//	
+	//	return Symbol(''+value);
+	//	
+	//}
 	
 }
 customElements.define(HTMLAttrSymbol.tagName, HTMLAttrSymbol);
@@ -972,17 +1207,29 @@ class HTMLAttrUndefined extends HTMLAttrVal {
 		
 	}
 	
+	static [HTMLAttrVal.$specify]() {
+		
+		return undefined;
+		
+	}
+	
 	constructor() {
 		
 		super();
 		
 	}
 	
-	[HTMLAttrVal.$specify](value, name, attr) {
+	[HTMLAttrVal.$specify]() {
 		
-		return undefined;
+		return HTMLAttrUndefined[HTMLAttrVal.$specify]();
 		
 	}
+	
+	//[HTMLAttrVal.$specify](value, name, attr) {
+	//	
+	//	return undefined;
+	//	
+	//}
 	
 }
 customElements.define(HTMLAttrUndefined.tagName, HTMLAttrUndefined);
@@ -1015,108 +1262,10 @@ class HTMLRootElement extends HTMLMutationEmitter {
 		
 	}
 	
-	static getPrefixedDSV(element, prefix, name) {
-		
-		if (prefix) {
-			
-			if (prefix instanceof RegExp) {
-				
-				const { attributes } = element, l = attributes.length;
-				
-				i = -1;
-				while	(
-							++i < l &&
-							!(k = (attr = attributes[i]).name).indexOf('data-') &&
-							k.slice(5).replace(prefix, '') !== name
-						);
-				
-				return i === l ? undefined : attr.value;
-				
-			} else return element.attributes['data-' + prefix + (name ? '-' + name : '')];
-			
-		} return undefined;
-		
-	}
-	static getPrefixedDS(element, prefix, asDash) {
-		
-		// 以下の RegExp が示すように、このメソッドは、カスタムデータ属性名の data-prefix-0a data-prefix0-a の違いを区別できない。
-		// このカスタム要素を使う場合、対応するカスタムデータ属性の名前内の二番目の単語の頭文字に数字とアンダーバーを使うのは避ける必要がある。
-		
-		const { camelize } = HTMLRootElement, { attributes } = element, l = attributes.length, value = {};
-		let i,k, attr;
-		
-		i = -1;
-		
-		if (prefix instanceof RegExp) {
-			
-			while (++i < l)	(k = (attr = attributes[i]).name).indexOf('data-') || prefix.test(k.slice(5)) &&
-										(value[asDash ? k : camelize(k, 1)] = attr.value);
-			
-		} else {
-			
-			let i0,l0, k0, p,p0, splitted;
-			
-			p = 'data-' + prefix, l0 = (p0 = prefix ? p + '-' : p).length;
-			while (++i < l)	(((k = (attr = attributes[i]).name) === p && prefix) || (!k.indexOf(p0) && k[l0])) &&
-										(value[asDash ? k : camelize(k, 1)] = attr.value);
-			
-		}
-		
-		return value;
-		
-	}
 	static matches(element, selector, that) {
 		
 		return element instanceof Element &&
 			(typeof selector === 'function' ? !!selector(element).call(that) : element.matches(selector));
-		
-	}
-	static specify(data, specification, asCamel) {
-		
-		// specification に指定された Object 内の各記述子のプロパティ defatultValue に
-		// HTMLRootElement.$raw が示すシンボルを値として指定すると、記述子に対応する属性値がない場合や、その値の型変換に失敗した際の既定値をその属性値にする。
-		// 例えば要素が <div data-a="1" /> <div data-a="a" />、記述子が { a: { type: 'number', defaultValue} } だった場合、
-		// 戻り値は [ { a: 1 }, { a: 'a' } ] になる。
-		
-		if (specification && typeof specification === 'object') {
-			
-			const { $raw, camelize, specifyValue } = HTMLRootElement;
-			let k,k0,v, spec, asBool;
-			
-			for (k in specification)
-				spec = specification[k],
-				k0 = asCamel ? camelize(k, 0) : k,
-				(v = data[k]) === $raw ?
-					(data[k0] = v) :
-					(
-						k in data && (data[k0] = specifyValue(v, spec)),
-						// asBool が truly である時、data にプロパティが存在していれば、それが falsy であってもその値は変換される。
-						// data にプロパティが存在していなければ、仮に specification に defaultValue が設定されていても、
-						// それは用いられず存在しないままとして扱われる。この動作は asBool が falsy の時とは異なり、通常は defaultValue の指定は尊重される。
-						// この違いによって、該当のプロパティが論理属性由来のものだったとして、
-						// その値が任意の型の値として使えるのと同時に、論理属性の指定の有無を data にプロパティが存在しているかどうかで判定できる。
-						// つまり論理属性の指定が data 上で再現されている。
-						k0 in data || spec?.asBool || (data[k0] = typeof spec === 'object' ? spec.defaultValue : spec),
-						data[k0] === $raw && (data[k0] = v)
-					),
-				asCamel && k !== k0 && delete data[k];
-				
-		}
-		
-		return data;
-		
-	}
-	static specifyValue(value, spec) {
-		
-		return	spec && typeof spec === 'object' && typeof v === 'string' ?
-						HTMLRootElement.str2val(v, spec.type, spec.defaultValue) : value;
-		
-	}
-	static specifyValueByName(value, name, specification) {
-		
-		let k;
-		
-		for (k in specification) if (k === name) return RootElement.specifyValueByName(value, specification[k]);
 		
 	}
 	
@@ -1151,79 +1300,9 @@ class HTMLRootElement extends HTMLMutationEmitter {
 		
 	}
 	
-	getCustomDSV(element, name) {
+	specify(element) {
 		
-		const { $cdp, getPrefixedDSV } = HTMLRootElement;
-		
-		return getPrefixedDSV(element, this.constructor[$cdp], name);
-		
-	}
-	getCustomDS(element, asDash, inherits) {
-		
-		const { $cdp, getPrefixedDS } = HTMLRootElement;
-		
-		return getPrefixedDS(element, this.constructor[$cdp], asDash);
-		
-	}
-	specifyDS(element, specification, asDash) {
-		
-		return	HTMLRootElement.specify(
-						this.inheritSpecifiedProperty(this.getCustomDS(element, asDash), specification),
-						specification
-					);
-		
-	}
-	getSpecifiedAttr(element, specification, asCamel) {
-		
-		const attr = {};
-		
-		if (specification && typeof specification === 'object') {
-			
-			const { attributes } = element;
-			let k;
-			
-			for (k in specification) attributes.hasOwnProperty(k) && (attr[k] = attributes[k].value);
-			
-			return HTMLRootElement.specify(this.inheritSpecifiedProperty(attr), specification, true);
-			
-		}
-		
-		return attr;
-		
-	}
-	getSpecifiedAttrValue(name, specificaton) {
-		
-		return this.specifyValue(this.getAttribute(name), specificaton[name]);
-		
-	}
-	//getSpecifiedAttrValue(element, name, specification) {
-	//	
-	//	const { attributes } = element;
-	//	
-	//	if (attributes.hasOwnProperty(name) && specification && typeof specification === 'object') {
-	//		
-	//		(attr[k] = attributes[name].value);
-	//		
-	//		return HTMLRootElement.specify(this.inheritSpecifiedProperty(attr), specification, true);
-	//		
-	//	}
-	//	
-	//}
-	inheritSpecifiedProperty(source, specification) {
-		
-		if (source && typeof source === 'object') {
-			
-			const { camelize } = HTMLRootElement;
-			let k;
-			
-			for (k in specification) source[k] ??
-				((inherit = specification[k].inherit) && (inherit === true ? this[camelize(k)] : this[inherit]));
-			
-			return source;
-			
-		}
-		
-		return null;
+		return element instanceof Element ? this.spec.specify(element) : null;
 		
 	}
 	
@@ -1266,14 +1345,14 @@ class HTMLRootElement extends HTMLMutationEmitter {
 		return this.setAttribute('allow-selector', v);
 		
 	}
-	get attrSpec() {
+	get spec() {
 		
-		return document.getElementById(this.getAttribute('attr-spec'));
+		return document.getElementById(this.getAttribute('spec'));
 		
 	}
-	set attrSpec(v) {
+	set spec(v) {
 		
-		this.setAttribute('attr-spec', v);
+		this.setAttribute('spec', v);
 		
 	}
 	get blockSelector() {
